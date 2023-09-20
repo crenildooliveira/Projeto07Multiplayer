@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+    <script src="/game.js"></script>
+    <title>Quadrado Andador BOX</title>
+    <style>
+        * {
+            padding: 0;
+            margin: 0;
+            border: 0;
+            box-sizing: border-box;
+        }
+
+        /* Defina o tamanho da janela e a cor da borda */
+        .janela {
+            width: 800px;
+            height: 800px;
+            border: 20px solid black;
+        }
+
+        /* Estilize o jogador com uma classe em vez de estilo embutido */
+        .player {
+            position: absolute;
+            width: 20px; /* Largura do jogador */
+            height: 20px; /* Altura do jogador */
+        }
+    </style>
+</head>
+<body>
+
+<script>
+    var stompClient = null;
+
+    // Função para conectar ao WebSocket
+    function connect() {
+        var socket = new SockJS('/ws');
+        stompClient = Stomp.over(socket);
+        stompClient.connect({}, function (frame) {
+            console.log('Connected: ' + frame);
+            assignRandomColor(); // Chame a função para atribuir uma cor aleatória ao jogador
+        });
+    }
+
+    // Função para enviar um movimento para o servidor
+    function sendMove(direction) {
+        var newX = playerLeft;
+        var newY = playerTop;
+
+        // Calcula as novas coordenadas com base na direção
+        if (direction === "up") {
+            newY -= 10; // Move 10 pixels para cima
+        } else if (direction === "down") {
+            newY += 10; // Move 10 pixels para baixo
+        } else if (direction === "left") {
+            newX -= 10; // Move 10 pixels para a esquerda
+        } else if (direction === "right") {
+            newX += 10; // Move 10 pixels para a direita
+        }
+
+        // Verifique se as novas coordenadas não saem dos limites
+        if (newX >= 0 && newX + playerWidth <= mazeWidth && newY >= 0 && newY + playerHeight <= mazeHeight) {
+            playerLeft = newX;
+            playerTop = newY;
+
+            // Envie o movimento para o servidor via WebSocket
+            var move = {
+                playerId: "player1", // Identificador único do jogador
+                newX: playerLeft,
+                newY: playerTop
+            };
+
+            stompClient.send("/app/move", {}, JSON.stringify(move));
+        }
+    }
+
+    // Função para escolher uma cor aleatória
+    function getRandomColor() {
+        var colors = ["red", "blue", "green", "yellow", "orange", "purple"];
+        var randomIndex = Math.floor(Math.random() * colors.length);
+        return colors[randomIndex];
+    }
+
+    // Função para atribuir uma cor aleatória ao jogador
+    function assignRandomColor() {
+        var playerColor = getRandomColor();
+        var player = document.getElementById("p1");
+        player.style.backgroundColor = playerColor;
+    }
+
+    // Inicialize a conexão ao WebSocket
+    connect();
+</script>
+</body>
+</html>
